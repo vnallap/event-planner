@@ -234,6 +234,19 @@
       border: 1px solid #e5e7eb;
       padding: 20px;
     }
+    /* Calendar styles (aligned with home page) */
+    .calendar-container { margin-top: 12px; }
+    .calendar-header { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px; }
+    .calendar-header button { padding: 6px 10px; border: 1px solid #e5e7eb; background: #fff; border-radius: 6px; cursor: pointer; }
+    .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; color: #6b7280; margin-bottom: 8px; }
+    .weekdays div { padding: 8px 0; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+    .calendar-day { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; min-height: 90px; padding: 8px; position: relative; }
+    .calendar-day.other-month { background: #fafafa; color: #9ca3af; }
+    .day-number { font-size: 12px; color: #374151; font-weight: 600; }
+    .calendar-day.today { box-shadow: 0 0 0 2px rgba(102,126,234,0.3) inset; }
+    .calendar-day.has-event .day-number { display: inline-block; background: #667eea; color: #fff; padding: 2px 6px; border-radius: 999px; }
+    .calendar-event { margin-top: 6px; font-size: 11px; background: #eef2ff; color: #1f2937; padding: 3px 6px; border-radius: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     footer {
       margin-top: 60px;
       padding: 30px 0;
@@ -347,8 +360,8 @@
         </div>
 
         <div class="form-group">
-          <label for="banner">Banner Image</label>
-          <input type="file" id="banner" name="banner" accept="image/*">
+          <label for="banner_path">Banner Image URL</label>
+          <input type="url" id="banner_path" name="banner_path" placeholder="https://example.com/image.jpg">
         </div>
 
         <button type="submit" class="btn btn-primary">Create Event</button>
@@ -431,20 +444,22 @@
     <div id="calendar" class="tab-content">
       <h2>Event Calendar</h2>
       <div class="calendar">
-        <p>Calendar view shows events for the month. Click on any date to see events scheduled for that day.</p>
-        <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin-top: 20px; text-align: center; color: #6b7280;">
-          Calendar implementation with monthly view, event highlighting, and interactive event details coming soon.
-        </div>
-        <div style="margin-top: 30px;">
-          <h3 style="font-size: 16px; margin-bottom: 16px; color: #111;">Upcoming Events</h3>
-          <div style="background: #f9fafb; border-radius: 8px; padding: 16px;">
-            @foreach($events->take(5) as $event)
-              <div style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-                <div style="font-weight: 500; color: #111;">{{ htmlspecialchars($event->title, ENT_QUOTES) }}</div>
-                <div style="font-size: 13px; color: #6b7280;">📅 {{ $event->start_at->format('M d, Y H:i') }}</div>
-              </div>
-            @endforeach
+        <div class="calendar-container">
+          <div class="calendar-header">
+            <button id="adminPrevMonth">&lt;</button>
+            <h3 id="adminCurrentMonth" style="margin: 0;"></h3>
+            <button id="adminNextMonth">&gt;</button>
           </div>
+          <div class="weekdays">
+            <div>Sun</div>
+            <div>Mon</div>
+            <div>Tue</div>
+            <div>Wed</div>
+            <div>Thu</div>
+            <div>Fri</div>
+            <div>Sat</div>
+          </div>
+          <div id="admin-calendar-days" class="calendar-grid"></div>
         </div>
       </div>
     </div>
@@ -462,6 +477,11 @@
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.getElementById(tabName).classList.add('active');
       event.target.classList.add('active');
+
+      // When switching to calendar tab, ensure calendar renders
+      if (tabName === 'calendar' && typeof renderAdminCalendar === 'function') {
+        renderAdminCalendar(currentMonth, currentYear);
+      }
     }
     
     function editEvent(eventId) {
@@ -474,8 +494,8 @@
         document.querySelector('main.container').appendChild(editTab);
       }
       
-      // Fetch event data
-      fetch(`/api/events/${eventId}`)
+      // Fetch event data via web route (JSON), avoids Sanctum API auth
+      fetch(`/admin/events/${eventId}/json`)
         .then(response => response.json())
         .then(event => {
           // Format dates for datetime-local input
@@ -527,9 +547,9 @@
               </div>
               
               <div class="form-group">
-                <label for="edit-banner">Banner Image</label>
+                <label for="edit-banner_path">Banner Image URL</label>
                 ${event.banner_path ? `<div><img src="${event.banner_path}" style="max-width: 200px; margin-bottom: 10px;"></div>` : ''}
-                <input type="file" id="edit-banner" name="banner" accept="image/*">
+                <input type="url" id="edit-banner_path" name="banner_path" value="${event.banner_path || ''}" placeholder="https://example.com/image.jpg">
               </div>
               
               <button type="submit" class="btn btn-primary">Update Event</button>
@@ -550,7 +570,7 @@
         })
         .catch(error => {
           console.error('Error fetching event:', error);
-          alert('Failed to load event data. Please try again.');
+          // Silenced alert per request; keep console for debugging
         });
     }
     
@@ -564,8 +584,8 @@
         document.querySelector('main.container').appendChild(editTab);
       }
       
-      // Fetch category data
-      fetch(`/api/categories/${categoryId}`)
+      // Fetch category data via web route (JSON)
+      fetch(`/admin/categories/${categoryId}/json`)
         .then(response => response.json())
         .then(category => {
           // Populate edit form
@@ -594,9 +614,100 @@
         })
         .catch(error => {
           console.error('Error fetching category:', error);
-          alert('Failed to load category data. Please try again.');
+          // Silenced alert per request
         });
     }
+
+    // Admin calendar rendering (aligned with home page)
+    const adminEvents = @json($events);
+    const adminCalendarDays = document.getElementById('admin-calendar-days');
+    const adminCurrentMonthElement = document.getElementById('adminCurrentMonth');
+    const adminPrevMonthButton = document.getElementById('adminPrevMonth');
+    const adminNextMonthButton = document.getElementById('adminNextMonth');
+
+    let currentDate = new Date();
+    let currentMonth = currentDate.getMonth();
+    let currentYear = currentDate.getFullYear();
+
+    function renderAdminCalendar(month, year) {
+      if (!adminCalendarDays) return;
+      adminCalendarDays.innerHTML = '';
+
+      const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      adminCurrentMonthElement.textContent = `${monthNames[month]} ${year}`;
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      // previous month padding
+      const prevMonthDays = new Date(year, month, 0).getDate();
+      for (let i = firstDay - 1; i >= 0; i--) {
+        const el = document.createElement('div');
+        el.className = 'calendar-day other-month';
+        el.textContent = prevMonthDays - i;
+        adminCalendarDays.appendChild(el);
+      }
+
+      const today = new Date();
+      for (let i = 1; i <= daysInMonth; i++) {
+        const el = document.createElement('div');
+        el.className = 'calendar-day';
+        const num = document.createElement('div');
+        num.className = 'day-number';
+        num.textContent = i;
+        el.appendChild(num);
+
+        if (year === today.getFullYear() && month === today.getMonth() && i === today.getDate()) {
+          el.classList.add('today');
+        }
+
+        const dayEvents = adminEvents.filter(evt => {
+          const d = new Date(evt.start_at);
+          return d.getDate() === i && d.getMonth() === month && d.getFullYear() === year;
+        });
+        if (dayEvents.length > 0) {
+          el.classList.add('has-event');
+          dayEvents.forEach(evt => {
+            const item = document.createElement('div');
+            item.className = 'calendar-event';
+            item.textContent = evt.title;
+            el.appendChild(item);
+          });
+        }
+
+        adminCalendarDays.appendChild(el);
+      }
+
+      // next month padding to complete 6 rows
+      const totalCells = 42;
+      const remaining = totalCells - (firstDay + daysInMonth);
+      for (let i = 1; i <= remaining; i++) {
+        const el = document.createElement('div');
+        el.className = 'calendar-day other-month';
+        el.textContent = i;
+        adminCalendarDays.appendChild(el);
+      }
+    }
+
+    // Initialize and navigation
+    if (adminPrevMonthButton && adminNextMonthButton) {
+      adminPrevMonthButton.addEventListener('click', function() {
+        currentMonth--;
+        if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+        renderAdminCalendar(currentMonth, currentYear);
+      });
+      adminNextMonthButton.addEventListener('click', function() {
+        currentMonth++;
+        if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+        renderAdminCalendar(currentMonth, currentYear);
+      });
+    }
+
+    // Render immediately if calendar tab is default active (not the case here)
+    // but ensure it renders once on load so switching is instant
+    document.addEventListener('DOMContentLoaded', () => {
+      renderAdminCalendar(currentMonth, currentYear);
+    });
   </script>
 </body>
 </html>

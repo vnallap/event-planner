@@ -35,9 +35,14 @@ Route::middleware(['auth', 'admin'])
     ->group(function () {
         Route::get('/options', [DashboardController::class, 'admin'])->name('admin.options');
         Route::get('/calendar', [DashboardController::class, 'admin'])->name('admin.calendar');
+        // JSON endpoints for admin edit forms
+        Route::get('/events/{event}/json', [\App\Http\Controllers\EventController::class, 'show'])->name('admin.events.json');
+        Route::get('/categories/{category}/json', [\App\Http\Controllers\CategoryController::class, 'show'])->name('admin.categories.json');
         Route::post('/categories', [\App\Http\Controllers\CategoryController::class, 'store'])->name('admin.categories.store');
+        Route::put('/categories/{category}', [\App\Http\Controllers\CategoryController::class, 'update'])->name('admin.categories.update');
         Route::delete('/categories/{category}', [\App\Http\Controllers\CategoryController::class, 'destroy'])->name('admin.categories.destroy');
         Route::post('/events', [\App\Http\Controllers\EventController::class, 'store'])->name('admin.events.store');
+        Route::put('/events/{event}', [\App\Http\Controllers\EventController::class, 'update'])->name('admin.events.update');
         Route::delete('/events/{event}', [\App\Http\Controllers\EventController::class, 'destroy'])->name('admin.events.destroy');
     });
 

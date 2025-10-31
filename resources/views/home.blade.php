@@ -176,8 +176,12 @@
     }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      grid-template-columns: repeat(2, 1fr);
       gap: 24px;
+      align-items: stretch;
+    }
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; }
     }
     .card {
       background: #fff;
@@ -185,6 +189,9 @@
       overflow: hidden;
       border: 1px solid #e5e7eb;
       transition: transform 0.3s, box-shadow 0.3s;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
     }
     .card:hover {
       transform: translateY(-4px);
@@ -202,11 +209,19 @@
     }
     .card-content {
       padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
     }
     .card h3 {
       font-size: 16px;
       margin-bottom: 8px;
       color: #111;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
     .card-meta {
       font-size: 12px;
@@ -226,6 +241,7 @@
     .button-group {
       display: flex;
       gap: 8px;
+      margin-top: auto;
     }
     .btn {
       display: inline-block;
@@ -381,6 +397,13 @@
     .calendar-day.has-event {
       background-color: #f8fafc;
     }
+    .calendar-day.has-event .day-number {
+      display: inline-block;
+      background: #667eea;
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 999px;
+    }
     .calendar-day.other-month {
       color: #d1d5db;
       background: #f9fafb;
@@ -463,6 +486,47 @@
           </select>
         </div>
       </div>
+
+      @if(count($events) > 0)
+        <div class="grid">
+          @foreach($events as $event)
+            <div class="card" data-category-id="{{ $event->category->_id ?? '' }}">
+              @if($event->banner_path)
+                <img src="{{ htmlspecialchars($event->banner_path, ENT_QUOTES) }}" alt="{{ $event->title }}">
+              @else
+                <div class="card-placeholder"></div>
+              @endif
+              <div class="card-content">
+                <h3>{{ htmlspecialchars($event->title, ENT_QUOTES) }}</h3>
+                <div class="card-meta">
+                  <div>📍 {{ htmlspecialchars($event->location, ENT_QUOTES) }}</div>
+                  <div>📅 {{ $event->start_at->format('M d, Y H:i') }} – {{ $event->end_at->format('H:i') }}</div>
+                </div>
+                <span class="badge">{{ htmlspecialchars($event->category->name ?? '—', ENT_QUOTES) }}</span>
+                <div class="button-group">
+                  @if(auth()->check() && auth()->user()->role === 'attendee')
+                    <form class="event-registration-form" data-event-id="{{ $event->_id }}" style="width: 100%;">
+                      @csrf
+                      <input type="hidden" name="event_id" value="{{ $event->_id }}">
+                      <button type="submit" class="btn btn-primary">Register for Event</button>
+                    </form>
+                    <div class="registration-message" id="reg-message-{{ $event->_id }}" style="display: none;"></div>
+                  @elseif(!auth()->check())
+                    <a href="/login" class="btn btn-secondary">Login to Register</a>
+                  @else
+                    <button class="btn btn-secondary" disabled>View Event</button>
+                  @endif
+                </div>
+              </div>
+            </div>
+          @endforeach
+        </div>
+      @else
+        <div class="empty-state">
+          <h2>No Events Found</h2>
+          <p>Check back soon for upcoming events!</p>
+        </div>
+      @endif
     </div>
     
     <div id="calendar" class="tab-content">
@@ -487,49 +551,6 @@
         <div id="calendar-days" class="calendar-grid"></div>
       </div>
     </div>
-    </div>
-
-    @if(count($events) > 0)
-      <div class="grid">
-        @foreach($events as $event)
-          <div class="card" data-category-id="{{ $event->category->_id ?? '' }}">
-            @if($event->banner_path)
-              <img src="{{ htmlspecialchars($event->banner_path, ENT_QUOTES) }}" alt="{{ $event->title }}">
-            @else
-              <div class="card-placeholder"></div>
-            @endif
-            <div class="card-content">
-              <h3>{{ htmlspecialchars($event->title, ENT_QUOTES) }}</h3>
-              <div class="card-meta">
-                <div>📍 {{ htmlspecialchars($event->location, ENT_QUOTES) }}</div>
-                <div>📅 {{ $event->start_at->format('M d, Y H:i') }} – {{ $event->end_at->format('H:i') }}</div>
-              </div>
-              <span class="badge">{{ htmlspecialchars($event->category->name ?? '—', ENT_QUOTES) }}</span>
-              <div class="button-group">
-                @if(auth()->check() && auth()->user()->role === 'attendee')
-                  <form class="event-registration-form" data-event-id="{{ $event->_id }}" style="width: 100%;">
-                    @csrf
-                    <input type="hidden" name="event_id" value="{{ $event->_id }}">
-                    <button type="submit" class="btn btn-primary">Register for Event</button>
-                  </form>
-                  <div class="registration-message" id="reg-message-{{ $event->_id }}" style="display: none;"></div>
-                @elseif(!auth()->check())
-                  <a href="/login" class="btn btn-secondary">Login to Register</a>
-                @else
-                  <button class="btn btn-secondary" disabled>View Event</button>
-                @endif
-              </div>
-            </div>
-            </div>
-          </div>
-        @endforeach
-      </div>
-    @else
-      <div class="empty-state">
-        <h2>No Events Found</h2>
-        <p>Check back soon for upcoming events!</p>
-      </div>
-    @endif
   </main>
 
   <footer>

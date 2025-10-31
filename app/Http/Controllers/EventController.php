@@ -44,13 +44,8 @@ class EventController extends Controller
             'location' => ['required', 'string', 'max:255'],
             'start_at' => ['required', 'date'],
             'end_at' => ['required', 'date', 'after_or_equal:start_at'],
-            'banner' => ['nullable', 'image', 'max:5120']
+            'banner_path' => ['nullable', 'url']
         ]);
-
-        $path = null;
-        if ($request->hasFile('banner')) {
-            $path = $request->file('banner')->store('banners', 'public');
-        }
 
         $event = Event::create([
             'title' => $data['title'],
@@ -59,7 +54,7 @@ class EventController extends Controller
             'location' => $data['location'],
             'start_at' => $data['start_at'],
             'end_at' => $data['end_at'],
-            'banner_path' => $path,
+            'banner_path' => $data['banner_path'] ?? null,
             'created_by' => Auth::id(),
         ]);
 
@@ -80,26 +75,22 @@ class EventController extends Controller
             'location' => ['sometimes', 'string', 'max:255'],
             'start_at' => ['sometimes', 'date'],
             'end_at' => ['sometimes', 'date', 'after_or_equal:start_at'],
-            'banner' => ['nullable', 'image', 'max:5120']
+            'banner_path' => ['nullable', 'url']
         ]);
-
-        if ($request->hasFile('banner')) {
-            if ($event->banner_path) {
-                Storage::disk('public')->delete($event->banner_path);
-            }
-            $data['banner_path'] = $request->file('banner')->store('banners', 'public');
-        }
 
         $event->fill($data)->save();
 
-        return response()->json($event);
+        if ($request->wantsJson()) {
+            return response()->json($event);
+        }
+        return redirect()->route('admin.options');
     }
 
     public function destroy(Request $request, Event $event)
     {
         $this->authorize('delete', $event);
 
-        if ($event->banner_path) {
+        if ($event->banner_path && !preg_match('/^https?:\/\//', $event->banner_path)) {
             Storage::disk('public')->delete($event->banner_path);
         }
 

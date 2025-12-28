@@ -10,7 +10,7 @@ class Event extends Model
     use HasFactory;
 
     protected $connection = 'mongodb';
-    protected $collection = 'events';
+    protected $table = 'events';
 
     protected $fillable = [
         'title',

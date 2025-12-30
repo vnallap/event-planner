@@ -1,0 +1,9 @@
+# cd c:\Users\ASUS\Desktop\ea\event-planner
+# docker compose build --no-cache
+# docker compose up -d
+# docker compose exec app apachectl -M | findstr rewrite
+# docker compose exec app bash -lc "grep -A2 '<Directory /var/www/html/public>' /etc/apache2/apache2.conf"
+# docker compose cp .env app:/var/www/html/.env
+# docker compose exec app php artisan optimize:clear
+# docker compose exec app php artisan config:cache
+# http://localhost:8000/

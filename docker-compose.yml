@@ -12,7 +12,9 @@ services:
       APP_URL: http://localhost:8000
 
       DB_CONNECTION: mongodb
-      DB_URI: mongodb://mongodb:27017/event_manager
+      MONGODB_URI: mongodb://mongodb:27017/event_manager
+      DB_HOST: mongodb
+      DB_PORT: 27017
 
       # Pass APP_KEY from your host machine
       APP_KEY: ${APP_KEY}

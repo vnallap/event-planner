@@ -10,7 +10,7 @@ class Registration extends Model
     use HasFactory;
 
     protected $connection = 'mongodb';
-    protected $collection = 'registrations';
+    protected $table = 'registrations';
 
     protected $fillable = [
         'user_id',

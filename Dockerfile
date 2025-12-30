@@ -25,7 +25,7 @@ WORKDIR /var/www/html
 COPY . /var/www/html
 
 # Fix storage permissions
-RUN mkdir -p storage/framework/{sessions,cache,views} \
+RUN mkdir -p storage/framework/{sessions,cache,views} bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 
 # Remove Collision service provider from production

@@ -19,7 +19,7 @@ services:
 
     command: >
       bash -c "
-      mkdir -p storage/framework/{sessions,cache,views} &&
+      mkdir -p storage/framework/{sessions,cache,views} bootstrap/cache &&
       chown -R www-data:www-data storage bootstrap/cache &&
       php artisan optimize:clear &&
       php artisan config:cache &&

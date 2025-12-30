@@ -1,0 +1,53 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:80"
+    depends_on:
+      mongodb:
+        condition: service_started
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:8000
+
+      DB_CONNECTION: mongodb
+      DB_URI: mongodb://mongodb:27017/event_manager
+
+      # Pass APP_KEY from your host machine
+      APP_KEY: ${APP_KEY}
+
+    command: >
+      bash -c "
+      mkdir -p storage/framework/{sessions,cache,views} &&
+      chown -R www-data:www-data storage bootstrap/cache &&
+      php artisan optimize:clear &&
+      php artisan config:cache &&
+      php artisan route:cache &&
+      php artisan view:cache ||
+      echo 'Skipping view cache...' &&
+      php artisan migrate --force &&
+      php artisan db:seed --force &&
+      apache2-foreground
+      "
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "echo", "db.runCommand({ ping: 1 })", "|", "mongosh", "mongodb://localhost:27017/admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongo-data:

@@ -42,16 +42,18 @@ class CategoryEventSeeder extends Seeder
         ];
 
         foreach ($events as $e) {
-            Event::create([
-                'title' => $e['t'],
-                'description' => null,
-                'category_id' => $map[$e['cat']],
-                'location' => $e['loc'],
-                'start_at' => $now->copy()->addDays($e['d'])->setHour($e['h1'])->setMinute(0),
-                'end_at' => $now->copy()->addDays($e['d'])->setHour($e['h2'])->setMinute(0),
-                'banner_path' => $e['img'],
-                'created_by' => null,
-            ]);
+            Event::firstOrCreate(
+                ['title' => $e['t']],
+                [
+                    'description' => null,
+                    'category_id' => $map[$e['cat']],
+                    'location' => $e['loc'],
+                    'start_at' => $now->copy()->addDays($e['d'])->setHour($e['h1'])->setMinute(0),
+                    'end_at' => $now->copy()->addDays($e['d'])->setHour($e['h2'])->setMinute(0),
+                    'banner_path' => $e['img'],
+                    'created_by' => null,
+                ]
+            );
         }
     }
 }
